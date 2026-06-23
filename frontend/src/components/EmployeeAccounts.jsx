@@ -27,7 +27,7 @@ export default function EmployeeAccounts() {
     <div>
       <h2>직원 계정 연결</h2>
       <p className="muted">
-        직원이 본인 연차를 보려면, 그 직원의 <strong>oro-mes 로그인 이메일</strong>을 연결하세요.
+        직원이 본인 연차를 보려면, 그 직원의 <strong>로그인 이메일</strong>을 연결하세요.
         연결된 직원은 그 이메일로 로그인하면 '직원' 권한으로 <strong>본인 연차만</strong> 보게 됩니다.
         (관리자·매니저는 위 '관리자 관리'에서 별도 등록)
       </p>
@@ -35,14 +35,14 @@ export default function EmployeeAccounts() {
       {error && <p className="error">{error}</p>}
       {msg && <p className="muted">{msg}</p>}
       <table className="card">
-        <thead><tr><th>성명</th><th>부서</th><th>직위</th><th>로그인 이메일 (oro-mes)</th><th>상태</th></tr></thead>
+        <thead><tr><th>성명</th><th>부서</th><th>직위</th><th>로그인 이메일</th><th>상태</th></tr></thead>
         <tbody>
           {emps.map((e) => (
             <tr key={e.id}>
               <td>{e.name}</td>
               <td>{e.department || '-'}</td>
               <td>{e.position || '-'}</td>
-              <td><input type="email" defaultValue={e.login_email || ''} placeholder="user@orocorp.kr" style={{ width: '220px' }} onBlur={(ev) => save(e, ev.target.value)} /></td>
+              <td><input type="email" defaultValue={e.login_email || ''} placeholder="user@gplan.kr" style={{ width: '220px' }} onBlur={(ev) => save(e, ev.target.value)} /></td>
               <td>{e.login_email ? <span style={{ color: '#1aa260', fontWeight: 600 }}>연결됨</span> : <span className="muted">미연결</span>}</td>
             </tr>
           ))}

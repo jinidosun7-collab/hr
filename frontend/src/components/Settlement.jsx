@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import { getEmployees, getLeaveStatus, getLeaveRecords, getLeaveTypes } from '../api.js'
 
-const COMPANY = 'ORO Corporation' // 회사명 (필요시 한 곳만 수정)
+const COMPANY = '지플랜' // 회사명 (필요시 한 곳만 수정)
 
 export default function Settlement() {
   const [employees, setEmployees] = useState([])

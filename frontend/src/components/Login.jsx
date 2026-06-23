@@ -34,15 +34,15 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="card login-card" onSubmit={handleSubmit}>
-        <h1>ORO HR 연차관리</h1>
-        <p className="muted">회사 계정(oro-mes)으로 로그인하세요.</p>
+        <h1>지플랜 HR 연차관리</h1>
+        <p className="muted">회사 계정으로 로그인하세요.</p>
 
         <label>이메일
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@orocorp.kr"
+            placeholder="you@gplan.kr"
             autoComplete="username"
           />
         </label>

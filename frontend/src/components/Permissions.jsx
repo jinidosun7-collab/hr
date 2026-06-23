@@ -85,9 +85,9 @@ export default function Permissions() {
       </div>
 
       <h2>관리자 관리</h2>
-      <p className="muted">관리자·매니저로 쓸 사람의 이메일(oro-mes 계정)을 등록합니다.</p>
+      <p className="muted">관리자·매니저로 쓸 사람의 이메일(로그인 계정)을 등록합니다.</p>
       <form className="card search-bar" onSubmit={addAdmin}>
-        <label>이메일<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="user@orocorp.kr" /></label>
+        <label>이메일<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="user@gplan.kr" /></label>
         <label>역할
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="admin">관리자</option>
