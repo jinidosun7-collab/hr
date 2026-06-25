@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { getEmployees, getEmployeeDetail, updateEmployee, addProfileItem, deleteProfileItem } from '../api.js'
-import { can } from '../perms.js'
+import { canEdit as canEditPerm } from '../perms.js'
 
 // 편집 가능한 프로필 단일값 필드 [키, 라벨, 타입]
 const FIELDS = [
@@ -18,7 +18,7 @@ const FIELDS = [
 const CATS = [['education', '학력'], ['career', '경력'], ['license', '자격증'], ['family', '가족']]
 
 export default function Profile() {
-  const canEdit = can('tab:profile') // 탭이 보이면 작업도 허용
+  const canEdit = canEditPerm('profile') // '편집' 권한이 있어야 작업 허용
   const [employees, setEmployees] = useState([])
   const [employeeId, setEmployeeId] = useState('')
   const [emp, setEmp] = useState(null)

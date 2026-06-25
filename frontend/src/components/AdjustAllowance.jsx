@@ -1,10 +1,10 @@
 // AdjustAllowance.jsx — 조정·수당 + 발생연차 요약. 권한: act:adjust_edit (입력/삭제).
 import { useState, useEffect } from 'react'
 import { getEmployees, getAdjustments, createAdjustment, deleteAdjustment, getAllowances, createAllowance, deleteAllowance, getLeaveStatus } from '../api.js'
-import { can } from '../perms.js'
+import { canEdit as canEditPerm } from '../perms.js'
 
 export default function AdjustAllowance() {
-  const canEdit = can('tab:adjust') // 탭이 보이면 작업도 허용
+  const canEdit = canEditPerm('adjust') // '편집' 권한이 있어야 작업 허용
   const [employees, setEmployees] = useState([])
   const [employeeId, setEmployeeId] = useState('')
   const [year, setYear] = useState(new Date().getFullYear())

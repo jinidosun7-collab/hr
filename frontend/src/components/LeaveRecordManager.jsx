@@ -1,10 +1,10 @@
 // LeaveRecordManager.jsx — 휴가 입력. 권한: act:record_edit (입력/삭제).
 import { useState, useEffect } from 'react'
 import { getEmployees, getLeaveTypes, createLeaveRecord, getLeaveRecords, deleteLeaveRecord } from '../api.js'
-import { can } from '../perms.js'
+import { canEdit as canEditPerm } from '../perms.js'
 
 export default function LeaveRecordManager() {
-  const canEdit = can('tab:records') // 탭이 보이면 작업도 허용
+  const canEdit = canEditPerm('records') // '편집' 권한이 있어야 작업 허용
   const [employees, setEmployees] = useState([])
   const [leaveTypes, setLeaveTypes] = useState([])
   const [employeeId, setEmployeeId] = useState('')

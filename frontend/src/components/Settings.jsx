@@ -1,7 +1,7 @@
 // Settings.jsx — 설정(근무시간·공휴일·휴가구분). '설정 변경' 권한 없으면 조회 전용.
 import { useState, useEffect } from 'react'
 import { getHolidays, createHoliday, deleteHoliday, importHolidays, getLeaveTypes, updateLeaveType, createLeaveType, deleteLeaveType, getSettings, updateSettings } from '../api.js'
-import { can } from '../perms.js'
+import { canEdit as canEditPerm } from '../perms.js'
 
 // 근무요일 표시 매핑 (getUTCDay 규약: 0=일..6=토)
 const WEEKDAYS = [['월', 1], ['화', 2], ['수', 3], ['목', 4], ['금', 5], ['토', 6], ['일', 0]]
@@ -14,7 +14,7 @@ export default function Settings() {
   const [hForm, setHForm] = useState({ holiday_date: '', name: '' })
   const [settings, setSettings] = useState({ daily_work_hours: 8, working_weekdays: [1, 2, 3, 4, 5] })
   const [ltForm, setLtForm] = useState({ label: '', deduct_days: 1, is_deductible: true })
-  const editable = can('tab:settings') // 탭이 보이면 설정 변경 허용
+  const editable = canEditPerm('settings') // '편집' 권한이 있어야 설정 변경 허용
 
   useEffect(() => { loadHolidays() /* eslint-disable-line */ }, [year])
   useEffect(() => { loadTypes(); loadSettings() }, [])

@@ -20,6 +20,8 @@ const TAB_KEYS = [
   ['tab:settlement', '정산서'], ['tab:certificate', '증명서'], ['tab:org', '조직도'], ['tab:alerts', '알림센터'], ['tab:training', '교육·자격'], ['tab:settings', '설정'],
 ]
 const ROLES = [['admin', '관리자'], ['manager', '매니저'], ['employee', '직원']]
+// 편집(등록·수정·삭제)이 의미 있는 메뉴 (그 외는 조회 전용)
+const EDITABLE = new Set(['approvals', 'attendance', 'employees', 'profile', 'records', 'adjust', 'settings', 'training'])
 
 export default function Permissions() {
   const [matrix, setMatrix] = useState({})   // { 'role|perm_key': true }
@@ -40,12 +42,23 @@ export default function Permissions() {
     } catch (e) { setError('불러오기 실패: ' + e.message) }
   }
 
-  // 체크박스 토글 → 서버 저장
-  async function toggle(role, key) {
-    const cur = !!matrix[`${role}|${key}`]
-    setMatrix((m) => ({ ...m, [`${role}|${key}`]: !cur })) // 화면 먼저 반영
-    try { await updatePermission(role, key, !cur) }
+  // 단일 권한 저장 (화면 먼저 반영 후 서버 저장)
+  async function setPerm(role, permKey, val) {
+    setMatrix((m) => ({ ...m, [`${role}|${permKey}`]: val }))
+    try { await updatePermission(role, permKey, val) }
     catch (e) { setError('저장 실패: ' + e.message); load() }
+  }
+  // 조회(tab:) 토글 — 끄면 편집(edit:)도 같이 끔
+  function toggleView(role, bare) {
+    const next = !matrix[`${role}|tab:${bare}`]
+    setPerm(role, `tab:${bare}`, next)
+    if (!next && matrix[`${role}|edit:${bare}`]) setPerm(role, `edit:${bare}`, false)
+  }
+  // 편집(edit:) 토글 — 켜면 조회(tab:)도 같이 켬
+  function toggleEdit(role, bare) {
+    const next = !matrix[`${role}|edit:${bare}`]
+    setPerm(role, `edit:${bare}`, next)
+    if (next && !matrix[`${role}|tab:${bare}`]) setPerm(role, `tab:${bare}`, true)
   }
 
   async function addAdmin(e) {
@@ -59,9 +72,13 @@ export default function Permissions() {
     try { await deleteAdmin(email); await load() } catch (e) { setError('삭제 실패: ' + e.message) }
   }
 
-  const Cell = ({ role, k }) => (
-    <td style={{ textAlign: 'center' }}>
-      <input type="checkbox" checked={!!matrix[`${role}|${k}`]} onChange={() => toggle(role, k)} />
+  // 한 역할의 (조회/편집) 셀. 편집이 의미 있는 메뉴만 편집 체크박스 표시.
+  const PCell = ({ role, bare }) => (
+    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+      <label style={{ marginRight: 10 }}><input type="checkbox" checked={!!matrix[`${role}|tab:${bare}`]} onChange={() => toggleView(role, bare)} /> 조회</label>
+      {EDITABLE.has(bare)
+        ? <label><input type="checkbox" checked={!!matrix[`${role}|edit:${bare}`]} onChange={() => toggleEdit(role, bare)} /> 편집</label>
+        : <span className="muted" style={{ opacity: 0.5 }}>—</span>}
     </td>
   )
 
@@ -70,16 +87,16 @@ export default function Permissions() {
       {error && <p className="error">{error}</p>}
 
       <h2>권한 매트릭스</h2>
-      <p className="muted">역할별로 보이는 메뉴(탭)를 정합니다. <strong>메뉴가 보이면 그 메뉴 안의 작업(등록·수정·삭제)도 자동 허용</strong>됩니다. Master(대표)는 항상 전체 권한입니다.</p>
+      <p className="muted">역할별로 메뉴의 <strong>조회</strong>와 <strong>편집</strong> 권한을 정합니다. 조회만 켜면 <strong>열람만</strong>, 편집까지 켜면 <strong>등록·수정·삭제</strong>가 가능합니다. (편집을 켜면 조회가 자동으로 켜지고, 조회를 끄면 편집도 꺼집니다.) '—'는 편집 개념이 없는 조회 전용 메뉴입니다. Master(대표)는 항상 전체 권한입니다.</p>
 
-      <h3>메뉴 표시 (탭)</h3>
+      <h3>메뉴 권한 (조회 / 편집)</h3>
       <div style={{ overflowX: 'auto' }}>
         <table className="card">
-          <thead><tr><th>권한</th>{ROLES.map(([r, l]) => <th key={r} style={{ textAlign: 'center' }}>{l}</th>)}</tr></thead>
+          <thead><tr><th>메뉴</th>{ROLES.map(([r, l]) => <th key={r} style={{ textAlign: 'center' }}>{l}<br /><small className="muted">조회 / 편집</small></th>)}</tr></thead>
           <tbody>
-            {TAB_KEYS.map(([k, label]) => (
-              <tr key={k}><td>{label}</td>{ROLES.map(([r]) => <Cell key={r} role={r} k={k} />)}</tr>
-            ))}
+            {TAB_KEYS.map(([k, label]) => { const bare = k.slice(4); return (
+              <tr key={k}><td>{label}</td>{ROLES.map(([r]) => <PCell key={r} role={r} bare={bare} />)}</tr>
+            ) })}
           </tbody>
         </table>
       </div>

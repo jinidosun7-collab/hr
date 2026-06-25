@@ -1,12 +1,12 @@
 // Training.jsx — '교육·자격' 관리. 전 직원의 자격증/교육 이수를 한 곳에서 등록·조회하고 만료를 추적.
 import { useState, useEffect } from 'react'
 import { getEmployees, getTrainingOverview, addProfileItem, deleteProfileItem } from '../api.js'
-import { can } from '../perms.js'
+import { canEdit as canEditPerm } from '../perms.js'
 
 const CATS = [['license', '자격증'], ['training', '교육']]
 
 export default function Training() {
-  const canEdit = can('tab:training') // 탭이 보이면 작업도 허용
+  const canEdit = canEditPerm('training') // '편집' 권한이 있어야 작업 허용
   const [employees, setEmployees] = useState([])
   const [rows, setRows] = useState([])
   const [error, setError] = useState('')

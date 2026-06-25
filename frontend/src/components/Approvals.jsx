@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { getLeaveRequests, approveLeaveRequest, rejectLeaveRequest } from '../api.js'
+import { canEdit as canEditPerm } from '../perms.js'
 
 const STATUS_LABEL = {
   pending: { text: '대기중', color: '#b45309', bg: '#fef3c7' },
@@ -18,6 +19,7 @@ export default function Approvals() {
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
   const [busyId, setBusyId] = useState(null)       // 처리 중인 신청 id
+  const canApprove = canEditPerm('approvals')      // '편집' 권한이 있어야 승인/반려 가능
 
   useEffect(() => {
     load()
@@ -111,10 +113,14 @@ export default function Approvals() {
                     <td><span style={{ background: st.bg, color: st.color, padding: '2px 8px', borderRadius: '10px', fontSize: '12px', fontWeight: 600 }}>{st.text}</span></td>
                     <td>
                       {r.status === 'pending' ? (
-                        <div className="row-actions">
-                          <button className="btn-sm" disabled={busyId === r.id} onClick={() => approve(r)}>승인</button>
-                          <button className="btn-sm btn-danger" disabled={busyId === r.id} onClick={() => reject(r)}>반려</button>
-                        </div>
+                        canApprove ? (
+                          <div className="row-actions">
+                            <button className="btn-sm" disabled={busyId === r.id} onClick={() => approve(r)}>승인</button>
+                            <button className="btn-sm btn-danger" disabled={busyId === r.id} onClick={() => reject(r)}>반려</button>
+                          </div>
+                        ) : (
+                          <span className="muted">대기중 (조회 전용)</span>
+                        )
                       ) : (
                         <span className="muted">{r.decision_note || '처리됨'}</span>
                       )}

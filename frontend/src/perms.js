@@ -11,6 +11,8 @@ export function setPerms(me) {
 }
 // 작업 허용 여부 (예: can('act:employee_delete'))
 export function can(key) { return P.master || !!P.set[key] }
-// 탭(메뉴) 표시 여부 (예: tabVisible('employees'))
+// 탭(메뉴) 표시/조회 여부 (예: tabVisible('employees') → 'tab:employees')
 export function tabVisible(tab) { return P.master || !!P.set['tab:' + tab] }
+// 편집(등록·수정·삭제) 허용 여부 (예: canEdit('employees') → 'edit:employees')
+export function canEdit(tab) { return P.master || !!P.set['edit:' + tab] }
 export function isMaster() { return P.master }

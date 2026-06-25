@@ -1,11 +1,11 @@
 // EmployeeManager.jsx — 사원 관리. 권한: act:employee_edit(등록/수정/CSV), act:employee_delete(삭제).
 import { useState, useEffect } from 'react'
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, bulkCreateEmployees } from '../api.js'
-import { can } from '../perms.js'
+import { canEdit as canEditPerm } from '../perms.js'
 
 export default function EmployeeManager() {
-  const canEdit = can('tab:employees') // 탭이 보이면 등록·수정 허용
-  const canDel = can('tab:employees')  // 탭이 보이면 삭제도 허용
+  const canEdit = canEditPerm('employees') // '편집' 권한이 있어야 등록·수정 허용
+  const canDel = canEditPerm('employees')  // 삭제도 동일
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { getEmployees, importAttendance, getAttendance } from '../api.js'
+import { canEdit as canEditPerm } from '../perms.js'
 
 // "09:00:00" 또는 "09:00" → 분(minute)으로. 빈 값/00:00 → 0
 function hmsToMin(v) {
@@ -37,6 +38,7 @@ export default function Attendance() {
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const canUpload = canEditPerm('attendance') // '편집' 권한이 있어야 엑셀 업로드 허용
 
   useEffect(() => {
     getEmployees().then(setEmployees).catch(() => {})
@@ -106,16 +108,18 @@ export default function Attendance() {
       {error && <p className="error">{error}</p>}
       {msg && <p className="muted" style={{ color: '#1aa260' }}>{msg}</p>}
 
-      {/* 업로드 */}
-      <div className="card" style={{ marginBottom: '12px' }}>
-        <label style={{ fontWeight: 600 }}>근태 엑셀 업로드&nbsp;
-          <input type="file" accept=".xls,.xlsx,.csv" onChange={onFile} disabled={busy} />
-        </label>
-        {busy && <span className="muted"> 처리 중...</span>}
-        <p className="muted" style={{ marginTop: 6 }}>
-          ※ 사용자ID 또는 이름으로 직원과 자동 매칭됩니다. 매칭이 안 되면 사원 관리에서 ‘근태ID(사용자ID)’를 등록해주세요.
-        </p>
-      </div>
+      {/* 업로드 (편집 권한 필요) */}
+      {canUpload && (
+        <div className="card" style={{ marginBottom: '12px' }}>
+          <label style={{ fontWeight: 600 }}>근태 엑셀 업로드&nbsp;
+            <input type="file" accept=".xls,.xlsx,.csv" onChange={onFile} disabled={busy} />
+          </label>
+          {busy && <span className="muted"> 처리 중...</span>}
+          <p className="muted" style={{ marginTop: 6 }}>
+            ※ 사용자ID 또는 이름으로 직원과 자동 매칭됩니다. 매칭이 안 되면 사원 관리에서 ‘근태ID(사용자ID)’를 등록해주세요.
+          </p>
+        </div>
+      )}
 
       {/* 조회 조건 */}
       <div className="card search-bar">
