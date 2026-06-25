@@ -144,6 +144,10 @@ export function deleteHoliday(id) { return request(`/holidays/${id}/delete`, { m
 
 // 휴가구분 수정 (차감일수·차감여부) (관리자)
 export function updateLeaveType(payload) { return request('/leave-types/update', { method: 'POST', body: JSON.stringify(payload) }) }
+// 휴가구분 추가 (관리자) — { label, deduct_days, is_deductible, code? }
+export function createLeaveType(payload) { return request('/leave-types/create', { method: 'POST', body: JSON.stringify(payload) }) }
+// 휴가구분 삭제 (관리자) — 자동관리 항목(연차·시간연차)은 불가
+export function deleteLeaveType(code) { return request(`/leave-types/${code}/delete`, { method: 'POST' }) }
 
 // 근무시간 설정 (소정근로시간·근무요일) — 조회는 staff, 변경은 tab:settings
 export function getSettings() { return request('/settings') }

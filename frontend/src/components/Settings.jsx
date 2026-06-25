@@ -1,6 +1,6 @@
 // Settings.jsx — 설정(근무시간·공휴일·휴가구분). '설정 변경' 권한 없으면 조회 전용.
 import { useState, useEffect } from 'react'
-import { getHolidays, createHoliday, deleteHoliday, importHolidays, getLeaveTypes, updateLeaveType, getSettings, updateSettings } from '../api.js'
+import { getHolidays, createHoliday, deleteHoliday, importHolidays, getLeaveTypes, updateLeaveType, createLeaveType, deleteLeaveType, getSettings, updateSettings } from '../api.js'
 import { can } from '../perms.js'
 
 // 근무요일 표시 매핑 (getUTCDay 규약: 0=일..6=토)
@@ -13,6 +13,7 @@ export default function Settings() {
   const [error, setError] = useState('')
   const [hForm, setHForm] = useState({ holiday_date: '', name: '' })
   const [settings, setSettings] = useState({ daily_work_hours: 8, working_weekdays: [1, 2, 3, 4, 5] })
+  const [ltForm, setLtForm] = useState({ label: '', deduct_days: 1, is_deductible: true })
   const editable = can('tab:settings') // 탭이 보이면 설정 변경 허용
 
   useEffect(() => { loadHolidays() /* eslint-disable-line */ }, [year])
@@ -60,6 +61,17 @@ export default function Settings() {
   }
   async function toggleDeductible(t) { try { await updateLeaveType({ code: t.code, is_deductible: !t.is_deductible }); await loadTypes() } catch (e) { setError('수정 실패: ' + e.message) } }
   async function saveDeductDays(t, v) { const n = Number(v); if (Number.isNaN(n)) return; try { await updateLeaveType({ code: t.code, deduct_days: n }); await loadTypes() } catch (e) { setError('수정 실패: ' + e.message) } }
+  async function addLeaveType(e) {
+    e.preventDefault(); setError('')
+    if (!ltForm.label.trim()) { setError('휴가구분 이름을 입력하세요.'); return }
+    const dd = Number(ltForm.deduct_days); if (!isFinite(dd) || dd < 0) { setError('차감일수를 올바르게 입력하세요.'); return }
+    try { await createLeaveType({ label: ltForm.label.trim(), deduct_days: dd, is_deductible: ltForm.is_deductible }); setLtForm({ label: '', deduct_days: 1, is_deductible: true }); await loadTypes() }
+    catch (e) { setError('추가 실패: ' + e.message) }
+  }
+  async function delLeaveType(t) {
+    if (!window.confirm(`'${t.label}' 휴가구분을 삭제할까요?\n(이미 사용된 기록은 그대로 남습니다.)`)) return
+    try { await deleteLeaveType(t.code); await loadTypes() } catch (e) { setError('삭제 실패: ' + e.message) }
+  }
 
   return (
     <section>
@@ -95,7 +107,7 @@ export default function Settings() {
       <h2>휴가구분 설정</h2>
       <p className="muted">'차감여부'를 끄면 그 휴가는 연차에서 빠지지 않습니다 (예: 병가·경조휴가). 시간단위 휴가(시간연차)의 차감일수는 위 소정근로시간에서 <strong>자동 계산</strong>됩니다.</p>
       <table className="card">
-        <thead><tr><th>휴가구분</th><th>차감일수(1회)</th><th>차감여부</th></tr></thead>
+        <thead><tr><th>휴가구분</th><th>차감일수(1회)</th><th>차감여부</th>{editable && <th>관리</th>}</tr></thead>
         <tbody>
           {types.map((t) => (
             <tr key={t.code}>
@@ -106,10 +118,20 @@ export default function Settings() {
                   : <input type="number" step="0.000001" defaultValue={t.deduct_days} style={{ width: '120px' }} disabled={!editable} onBlur={(e) => saveDeductDays(t, e.target.value)} />}
               </td>
               <td><label className="checkbox-label" style={{ gridColumn: 'auto' }}><input type="checkbox" checked={!!t.is_deductible} disabled={!editable} onChange={() => toggleDeductible(t)} />{t.is_deductible ? '차감함' : '차감 안 함'}</label></td>
+              {editable && <td>{(isAutoType(t) || t.code === 'annual_7h') ? <span className="muted"><small>자동</small></span> : <button className="btn-sm btn-danger" onClick={() => delLeaveType(t)}>삭제</button>}</td>}
             </tr>
           ))}
         </tbody>
       </table>
+      {editable && (
+        <form className="card search-bar" onSubmit={addLeaveType}>
+          <label>이름<input value={ltForm.label} onChange={(e) => setLtForm({ ...ltForm, label: e.target.value })} placeholder="예: 반차, 공가" /></label>
+          <label>차감일수<input type="number" step="0.000001" min="0" value={ltForm.deduct_days} onChange={(e) => setLtForm({ ...ltForm, deduct_days: e.target.value })} style={{ width: '110px' }} /></label>
+          <label className="checkbox-label" style={{ gridColumn: 'auto' }}><input type="checkbox" checked={ltForm.is_deductible} onChange={(e) => setLtForm({ ...ltForm, is_deductible: e.target.checked })} />연차에서 차감</label>
+          <button type="submit">휴가구분 추가</button>
+        </form>
+      )}
+      <p className="muted">· 종일 휴가는 차감일수 1, 반일은 0.5처럼 입력합니다. '연차에서 차감'을 끄면 병가·경조처럼 연차를 깎지 않습니다.</p>
 
       <div className="dash-head">
         <h2>공휴일 설정</h2>
