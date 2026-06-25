@@ -145,6 +145,10 @@ export function deleteHoliday(id) { return request(`/holidays/${id}/delete`, { m
 // 휴가구분 수정 (차감일수·차감여부) (관리자)
 export function updateLeaveType(payload) { return request('/leave-types/update', { method: 'POST', body: JSON.stringify(payload) }) }
 
+// 근무시간 설정 (소정근로시간·근무요일) — 조회는 staff, 변경은 tab:settings
+export function getSettings() { return request('/settings') }
+export function updateSettings(payload) { return request('/settings/update', { method: 'POST', body: JSON.stringify(payload) }) }
+
 // 공휴일 자동수집 (한국 공휴일 API) (관리자)
 export function importHolidays(year) { return request(`/holidays/import?year=${year}`, { method: 'POST' }) }
 

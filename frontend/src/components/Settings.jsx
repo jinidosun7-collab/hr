@@ -1,7 +1,10 @@
-// Settings.jsx — 설정(공휴일·휴가구분). '설정 변경' 권한(act:settings_edit) 없으면 조회 전용.
+// Settings.jsx — 설정(근무시간·공휴일·휴가구분). '설정 변경' 권한 없으면 조회 전용.
 import { useState, useEffect } from 'react'
-import { getHolidays, createHoliday, deleteHoliday, importHolidays, getLeaveTypes, updateLeaveType } from '../api.js'
+import { getHolidays, createHoliday, deleteHoliday, importHolidays, getLeaveTypes, updateLeaveType, getSettings, updateSettings } from '../api.js'
 import { can } from '../perms.js'
+
+// 근무요일 표시 매핑 (getUTCDay 규약: 0=일..6=토)
+const WEEKDAYS = [['월', 1], ['화', 2], ['수', 3], ['목', 4], ['금', 5], ['토', 6], ['일', 0]]
 
 export default function Settings() {
   const [year, setYear] = useState(new Date().getFullYear())
@@ -9,13 +12,40 @@ export default function Settings() {
   const [types, setTypes] = useState([])
   const [error, setError] = useState('')
   const [hForm, setHForm] = useState({ holiday_date: '', name: '' })
+  const [settings, setSettings] = useState({ daily_work_hours: 8, working_weekdays: [1, 2, 3, 4, 5] })
   const editable = can('tab:settings') // 탭이 보이면 설정 변경 허용
 
   useEffect(() => { loadHolidays() /* eslint-disable-line */ }, [year])
-  useEffect(() => { loadTypes() }, [])
+  useEffect(() => { loadTypes(); loadSettings() }, [])
 
   async function loadHolidays() { try { setHolidays(await getHolidays(year)) } catch (e) { setError('공휴일 조회 오류: ' + e.message) } }
   async function loadTypes() { try { setTypes(await getLeaveTypes()) } catch (e) { setError('휴가구분 조회 오류: ' + e.message) } }
+  async function loadSettings() { try { setSettings(await getSettings()) } catch (e) { setError('근무시간 설정 조회 오류: ' + e.message) } }
+
+  // 시간단위 휴가(h1, h2…)는 소정근로시간에서 자동 계산되므로 차감일수 직접수정 불가
+  const isAutoType = (t) => /^h\d+$/.test(t.code)
+
+  async function saveDailyHours(v) {
+    const n = Math.round(Number(v)); if (!(n >= 1 && n <= 24)) { setError('소정근로시간은 1~24 사이로 입력하세요.'); return }
+    if (n === Number(settings.daily_work_hours)) return
+    if (!window.confirm(`소정근로시간을 ${n}시간으로 변경하면 시간단위 휴가의 차감일수가 자동 재계산됩니다.\n(이미 기록된 휴가는 변경되지 않습니다.)\n진행할까요?`)) { loadSettings(); return }
+    setError('')
+    try { await updateSettings({ daily_work_hours: n }); await loadSettings(); await loadTypes() }
+    catch (e) { setError('저장 실패: ' + e.message) }
+  }
+  async function saveWeekdays(arr) {
+    if (!arr.length) { setError('근무 요일을 1개 이상 선택하세요.'); return }
+    setError('')
+    try { await updateSettings({ working_weekdays: arr }); await loadSettings() }
+    catch (e) { setError('저장 실패: ' + e.message) }
+  }
+  function toggleWeekday(w) {
+    if (!editable) return
+    const set = new Set(settings.working_weekdays)
+    set.has(w) ? set.delete(w) : set.add(w)
+    saveWeekdays([...set].sort((a, b) => a - b))
+  }
+  function applyPreset(arr) { if (editable) saveWeekdays(arr) }
 
   async function addHoliday(e) {
     e.preventDefault(); setError('')
@@ -36,15 +66,45 @@ export default function Settings() {
       {error && <p className="error">{error}</p>}
       {!editable && <p className="muted">조회 전용입니다 (설정 변경 권한 없음).</p>}
 
+      <h2>근무시간 설정</h2>
+      <p className="muted">회사의 소정근로시간(1일 근무시간)과 근무 요일을 정합니다. 소정근로시간을 바꾸면 시간단위 휴가의 차감일수가 자동 계산됩니다.</p>
+      <div className="card">
+        <div className="search-bar" style={{ alignItems: 'center' }}>
+          <label>1일 소정근로시간
+            <input type="number" min="1" max="24" step="1" defaultValue={settings.daily_work_hours} key={'dh-' + settings.daily_work_hours}
+              style={{ width: '90px' }} disabled={!editable} onBlur={(e) => saveDailyHours(e.target.value)} /> 시간
+          </label>
+          {editable && (
+            <span style={{ display: 'flex', gap: 6 }}>
+              <button type="button" className="btn-sm" onClick={() => applyPreset([1, 2, 3, 4, 5])}>주5일</button>
+              <button type="button" className="btn-sm" onClick={() => applyPreset([1, 2, 3, 4])}>주4일</button>
+            </span>
+          )}
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <span className="muted" style={{ marginRight: 8 }}>근무 요일</span>
+          {WEEKDAYS.map(([label, w]) => (
+            <label key={w} className="checkbox-label" style={{ gridColumn: 'auto', display: 'inline-flex', marginRight: 12 }}>
+              <input type="checkbox" checked={settings.working_weekdays.includes(w)} disabled={!editable} onChange={() => toggleWeekday(w)} />{label}
+            </label>
+          ))}
+        </div>
+        <p className="muted" style={{ marginTop: 8 }}>· 선택한 요일만 종일 휴가의 사용일수로 계산됩니다(공휴일은 별도 제외). · 현재 1일 = {settings.daily_work_hours}시간 기준.</p>
+      </div>
+
       <h2>휴가구분 설정</h2>
-      <p className="muted">'차감여부'를 끄면 그 휴가는 연차에서 빠지지 않습니다 (예: 병가·경조휴가).</p>
+      <p className="muted">'차감여부'를 끄면 그 휴가는 연차에서 빠지지 않습니다 (예: 병가·경조휴가). 시간단위 휴가(시간연차)의 차감일수는 위 소정근로시간에서 <strong>자동 계산</strong>됩니다.</p>
       <table className="card">
         <thead><tr><th>휴가구분</th><th>차감일수(1회)</th><th>차감여부</th></tr></thead>
         <tbody>
           {types.map((t) => (
             <tr key={t.code}>
               <td>{t.label}</td>
-              <td><input type="number" step="0.000001" defaultValue={t.deduct_days} style={{ width: '120px' }} disabled={!editable} onBlur={(e) => saveDeductDays(t, e.target.value)} /></td>
+              <td>
+                {isAutoType(t)
+                  ? <span title="소정근로시간에서 자동 계산됩니다" className="muted">{Number(t.deduct_days).toFixed(6)} <small>(자동)</small></span>
+                  : <input type="number" step="0.000001" defaultValue={t.deduct_days} style={{ width: '120px' }} disabled={!editable} onBlur={(e) => saveDeductDays(t, e.target.value)} />}
+              </td>
               <td><label className="checkbox-label" style={{ gridColumn: 'auto' }}><input type="checkbox" checked={!!t.is_deductible} disabled={!editable} onChange={() => toggleDeductible(t)} />{t.is_deductible ? '차감함' : '차감 안 함'}</label></td>
             </tr>
           ))}
