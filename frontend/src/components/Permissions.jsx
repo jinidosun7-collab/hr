@@ -11,6 +11,7 @@ import EmployeeAccounts from './EmployeeAccounts.jsx'
 
 // 매트릭스에 보여줄 권한 키 목록
 const TAB_KEYS = [
+  ['tab:notice', '공지사항(전체)'],
   ['tab:myleave', '내 연차(직원 본인)'],
   ['tab:leave_request', '휴가 입력(결재·직원 신청)'],
   ['tab:approvals', '결재함(승인·관리자)'],
@@ -21,7 +22,7 @@ const TAB_KEYS = [
 ]
 const ROLES = [['admin', '관리자'], ['manager', '매니저'], ['employee', '직원']]
 // 편집(등록·수정·삭제)이 의미 있는 메뉴 (그 외는 조회 전용)
-const EDITABLE = new Set(['approvals', 'attendance', 'employees', 'profile', 'records', 'adjust', 'settings', 'training'])
+const EDITABLE = new Set(['notice', 'approvals', 'attendance', 'employees', 'profile', 'records', 'adjust', 'settings', 'training'])
 
 export default function Permissions() {
   const [matrix, setMatrix] = useState({})   // { 'role|perm_key': true }

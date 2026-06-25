@@ -160,8 +160,13 @@ export function updateSettings(payload) { return request('/settings/update', { m
 // 공휴일 자동수집 (한국 공휴일 API) (관리자)
 export function importHolidays(year) { return request(`/holidays/import?year=${year}`, { method: 'POST' }) }
 
-// 휴가 캘린더 (월간) (관리자)
+// 휴가 캘린더 (월간) — tab:calendar 권한이 있으면 직원도 조회 가능
 export function getCalendar(year, month) { return request(`/calendar?year=${year}&month=${month}`) }
+
+// 공지사항 — 조회는 tab:notice, 작성·삭제는 edit:notice
+export function getAnnouncements() { return request('/announcements') }
+export function createAnnouncement(payload) { return request('/announcements', { method: 'POST', body: JSON.stringify(payload) }) }
+export function deleteAnnouncement(id) { return request(`/announcements/${id}/delete`, { method: 'POST' }) }
 
 // 권한 매트릭스 (master 전용)
 export function getPermissions() { return request('/permissions') }
