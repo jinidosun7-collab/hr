@@ -114,6 +114,10 @@ export function updateEmployee(id, fields) {
 export function deleteEmployee(id) {
   return request(`/employees/${id}/delete`, { method: 'POST' })
 }
+// 직원 로그인 계정 생성/비밀번호 설정 (관리자) — 이메일+비밀번호로 실제 로그인 계정 발급 후 사원과 연결
+export function setEmployeeAccount(id, email, password) {
+  return request(`/employees/${id}/account`, { method: 'POST', body: JSON.stringify({ email, password }) })
+}
 // 휴가 기록 삭제 (관리자)
 export function deleteLeaveRecord(id) {
   return request(`/leave-records/${id}/delete`, { method: 'POST' })
