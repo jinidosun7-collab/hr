@@ -11,7 +11,7 @@ export default function EmployeeManager() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const emptyForm = { name: '', department: '', position: '', employee_no: '', monthly_wage: 0, hire_date: '', resign_date: '', accrual_basis: 'hire', login_email: '', status: '재직' }
+  const emptyForm = { name: '', department: '', position: '', employee_no: '', monthly_wage: 0, hire_date: '', resign_date: '', accrual_basis: 'hire', annual_leave_override: '', login_email: '', status: '재직' }
   const [form, setForm] = useState(emptyForm)
   const [csv, setCsv] = useState('')
   const [importMsg, setImportMsg] = useState('')
@@ -19,12 +19,12 @@ export default function EmployeeManager() {
   useEffect(() => { loadEmployees() }, [])
   async function loadEmployees() { setLoading(true); setError(''); try { setEmployees(await getEmployees()) } catch (e) { setError(e.message) } finally { setLoading(false) } }
   function ch(e) { const { name, value } = e.target; setForm((p) => ({ ...p, [name]: value })) }
-  function startEdit(emp) { setEditingId(emp.id); setForm({ name: emp.name || '', department: emp.department || '', position: emp.position || '', employee_no: emp.employee_no || '', monthly_wage: emp.monthly_wage || 0, hire_date: emp.hire_date || '', resign_date: emp.resign_date || '', accrual_basis: emp.accrual_basis || 'hire', login_email: emp.login_email || '', status: emp.status || '재직' }); setError(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  function startEdit(emp) { setEditingId(emp.id); setForm({ name: emp.name || '', department: emp.department || '', position: emp.position || '', employee_no: emp.employee_no || '', monthly_wage: emp.monthly_wage || 0, hire_date: emp.hire_date || '', resign_date: emp.resign_date || '', accrual_basis: emp.accrual_basis || 'hire', annual_leave_override: emp.annual_leave_override ?? '', login_email: emp.login_email || '', status: emp.status || '재직' }); setError(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }
   function cancelEdit() { setEditingId(null); setForm(emptyForm); setError('') }
   async function submit(e) {
     e.preventDefault(); if (!form.name || !form.hire_date) { setError('성명과 입사일은 필수입니다.'); return }
     setSaving(true); setError('')
-    try { const p = { ...form, monthly_wage: Number(form.monthly_wage) || 0, resign_date: form.resign_date || null }; if (editingId) await updateEmployee(editingId, p); else await createEmployee(p); cancelEdit(); await loadEmployees() }
+    try { const p = { ...form, monthly_wage: Number(form.monthly_wage) || 0, resign_date: form.resign_date || null, annual_leave_override: (form.annual_leave_override === '' || form.annual_leave_override === null) ? null : Number(form.annual_leave_override) }; if (editingId) await updateEmployee(editingId, p); else await createEmployee(p); cancelEdit(); await loadEmployees() }
     catch (e) { setError((editingId ? '수정 실패: ' : '등록 실패: ') + e.message) } finally { setSaving(false) }
   }
   async function del(emp) { if (!window.confirm(`'${emp.name}' 사원을 삭제할까요? 휴가 기록도 함께 삭제됩니다.`)) return; try { await deleteEmployee(emp.id); if (editingId === emp.id) cancelEdit(); await loadEmployees() } catch (e) { setError('삭제 실패: ' + e.message) } }
@@ -50,6 +50,7 @@ export default function EmployeeManager() {
             <label>입사일 *<input name="hire_date" type="date" value={form.hire_date} onChange={ch} /></label>
             <label>퇴사일<input name="resign_date" type="date" value={form.resign_date} onChange={ch} /></label>
             <label>산정기준<select name="accrual_basis" value={form.accrual_basis} onChange={ch}><option value="hire">입사일 기준</option><option value="fiscal">회계연도 기준</option></select></label>
+            <label>연차 수량(수동)<input name="annual_leave_override" type="number" step="0.5" min="0" value={form.annual_leave_override} onChange={ch} placeholder="비우면 자동계산" /></label>
             <label>상태<select name="status" value={form.status} onChange={ch}><option value="재직">재직</option><option value="퇴사">퇴사</option><option value="정지">정지(사용정지)</option></select></label>
             <label>로그인 이메일<input name="login_email" type="email" value={form.login_email} onChange={ch} /></label>
             <div className="form-actions"><button type="submit" disabled={saving}>{saving ? '저장 중...' : (editingId ? '수정 저장' : '사원 등록')}</button>{editingId && <button type="button" className="btn-ghost" onClick={cancelEdit}>취소</button>}</div>
@@ -67,11 +68,11 @@ export default function EmployeeManager() {
       <h2>사원 목록</h2>
       {loading ? <p>불러오는 중...</p> : employees.length === 0 ? <p className="muted">아직 등록된 사원이 없습니다.</p> : (
         <table className="card">
-          <thead><tr><th>성명</th><th>부서</th><th>직위</th><th>사번</th><th>입사일</th><th>상태</th>{(canEdit || canDel) && <th>관리</th>}</tr></thead>
+          <thead><tr><th>성명</th><th>부서</th><th>직위</th><th>사번</th><th>입사일</th><th>상태</th><th>연차(수동)</th>{(canEdit || canDel) && <th>관리</th>}</tr></thead>
           <tbody>
             {employees.map((emp) => (
               <tr key={emp.id} className={emp.status !== '재직' ? 'row-inactive' : ''}>
-                <td>{emp.name}</td><td>{emp.department || '-'}</td><td>{emp.position || '-'}</td><td>{emp.employee_no || '-'}</td><td>{emp.hire_date}</td><td>{emp.status || '재직'}</td>
+                <td>{emp.name}</td><td>{emp.department || '-'}</td><td>{emp.position || '-'}</td><td>{emp.employee_no || '-'}</td><td>{emp.hire_date}</td><td>{emp.status || '재직'}</td><td>{emp.annual_leave_override ?? <span className="muted">자동</span>}</td>
                 {(canEdit || canDel) && <td className="row-actions">{canEdit && <button className="btn-sm" onClick={() => startEdit(emp)}>수정</button>}{canDel && <button className="btn-sm btn-danger" onClick={() => del(emp)}>삭제</button>}</td>}
               </tr>
             ))}
