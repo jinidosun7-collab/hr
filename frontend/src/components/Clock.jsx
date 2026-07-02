@@ -2,7 +2,7 @@
 // 출근/퇴근 버튼으로 오늘 근무시간을 기록하고, 이번 달 본인 근무시간 총합·내역을 본다.
 
 import { useState, useEffect } from 'react'
-import { getMyAttendanceToday, clockIn, clockOut, getMyAttendance } from '../api.js'
+import { getMyAttendanceToday, clockIn, clockOut, resetMyAttendanceToday, getMyAttendance } from '../api.js'
 
 function fmtMin(n) {
   if (n === null || n === undefined) return '-'
@@ -30,13 +30,21 @@ export default function Clock({ myName }) {
   }
 
   async function doClockIn() {
+    if (!window.confirm('지금 시각으로 출근을 기록할까요?')) return
     setBusy(true); setError(''); setMsg('')
     try { const r = await clockIn(); setMsg(`출근 기록 완료 (${r.clock_in})`); await load() }
     catch (e) { setError(e.message) } finally { setBusy(false) }
   }
   async function doClockOut() {
+    if (!window.confirm('지금 시각으로 퇴근을 기록할까요?')) return
     setBusy(true); setError(''); setMsg('')
     try { const r = await clockOut(); setMsg(`퇴근 기록 완료 (${r.clock_out}, 근무 ${fmtMin(r.total_min)})`); await load() }
+    catch (e) { setError(e.message) } finally { setBusy(false) }
+  }
+  async function doReset() {
+    if (!window.confirm('오늘 출퇴근 기록을 취소하고 다시 입력하시겠어요?\n(실수로 누른 경우 사용하세요.)')) return
+    setBusy(true); setError(''); setMsg('')
+    try { await resetMyAttendanceToday(); setMsg('오늘 기록을 취소했습니다. 다시 출근을 눌러주세요.'); await load() }
     catch (e) { setError(e.message) } finally { setBusy(false) }
   }
 
@@ -62,6 +70,12 @@ export default function Clock({ myName }) {
         </div>
         {rec?.clock_in && !rec?.clock_out && <p className="muted" style={{ marginTop: 10 }}>출근 완료 — 퇴근 시 '퇴근'을 눌러주세요.</p>}
         {rec?.clock_out && <p className="muted" style={{ marginTop: 10 }}>오늘 근무 기록이 완료되었습니다.</p>}
+        {rec?.clock_in && (
+          <div style={{ marginTop: 12 }}>
+            <button className="btn-sm btn-ghost" onClick={doReset} disabled={busy}>오늘 기록 취소(재설정)</button>
+            <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>실수로 눌렀다면 취소 후 다시 입력하세요.</span>
+          </div>
+        )}
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>

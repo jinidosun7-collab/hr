@@ -100,6 +100,7 @@ export function getMyAttendance(year, month) {
 export function getMyAttendanceToday() { return request('/me/attendance/today') }
 export function clockIn() { return request('/me/attendance/clock-in', { method: 'POST' }) }
 export function clockOut() { return request('/me/attendance/clock-out', { method: 'POST' }) }
+export function resetMyAttendanceToday() { return request('/me/attendance/reset', { method: 'POST' }) }
 // 관리자: 근태 월별 총합(직원별)
 export function getAttendanceSummary(year, month) { return request(`/attendance/summary?year=${year}&month=${month}`) }
 
