@@ -115,18 +115,20 @@ export default function Dashboard() {
       {att.length > 0 && (
         <div style={{ marginTop: 24 }}>
           <div className="dash-head">
-            <h2>{attMonth}월 근무시간</h2>
-            <strong>총 {fmtMin(att.reduce((s, a) => s + (Number(a.total_min) || 0), 0))}</strong>
+            <h2>{attMonth}월 근무시간 (출퇴근)</h2>
+            <strong>총 {fmtMin(att.reduce((s, a) => s + (Number(a.self_min) || 0), 0))}</strong>
           </div>
+          <p className="muted" style={{ marginTop: 0 }}>직원이 실제로 누른 출퇴근 기준입니다. (캡스=엑셀은 비교용)</p>
           <table className="card dash-table">
-            <thead><tr><th>성명</th><th>부서</th><th style={{ textAlign: 'right' }}>근무일수</th><th style={{ textAlign: 'right' }}>총 근무시간</th><th style={{ textAlign: 'right' }}>연장</th></tr></thead>
+            <thead><tr><th>성명</th><th>부서</th><th style={{ textAlign: 'right' }}>근무일수</th><th style={{ textAlign: 'right' }}>출퇴근 시간</th><th style={{ textAlign: 'right' }}>연장</th><th style={{ textAlign: 'right' }}>캡스 시간</th></tr></thead>
             <tbody>
               {att.map((a) => (
                 <tr key={a.employee_id ?? a.name}>
                   <td>{a.name}</td><td>{a.department || '-'}</td>
-                  <td style={{ textAlign: 'right' }}>{a.days}</td>
-                  <td style={{ textAlign: 'right' }}>{fmtMin(a.total_min)}</td>
-                  <td style={{ textAlign: 'right' }}>{fmtMin(a.overtime_min)}</td>
+                  <td style={{ textAlign: 'right' }}>{a.self_days || '-'}</td>
+                  <td style={{ textAlign: 'right' }}>{a.self_min ? fmtMin(a.self_min) : '-'}</td>
+                  <td style={{ textAlign: 'right' }}>{a.self_ot ? fmtMin(a.self_ot) : '-'}</td>
+                  <td style={{ textAlign: 'right' }} className="muted">{a.excel_min ? fmtMin(a.excel_min) : '-'}</td>
                 </tr>
               ))}
             </tbody>

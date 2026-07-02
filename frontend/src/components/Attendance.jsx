@@ -99,12 +99,14 @@ export default function Attendance() {
   }
 
   const showName = !empId // 전체 보기일 때만 이름 열 표시
-  // 근무시간 합계 (로드된 기간 기준)
-  const monthTotal = rows.reduce((s, r) => s + (Number(r.total_min) || 0), 0)
+  const srcLabel = (s) => (s === 'self' ? '출퇴근' : '캡스')
+  // 근무시간 합계 — 출퇴근(실제)/캡스(참고) 분리
+  const selfTotal = rows.filter((r) => r.source === 'self').reduce((s, r) => s + (Number(r.total_min) || 0), 0)
+  const excelTotal = rows.filter((r) => r.source !== 'self').reduce((s, r) => s + (Number(r.total_min) || 0), 0)
   const summaryRows = (() => {
     const m = {}
-    rows.forEach((r) => { const k = r.employee_name || '?'; if (!m[k]) m[k] = { name: k, dept: r.department || '', days: 0, total: 0 }; m[k].days++; m[k].total += Number(r.total_min) || 0 })
-    return Object.values(m).sort((a, b) => b.total - a.total)
+    rows.forEach((r) => { const k = r.employee_name || '?'; if (!m[k]) m[k] = { name: k, dept: r.department || '', self_days: 0, self_min: 0, excel_days: 0, excel_min: 0 }; if (r.source === 'self') { m[k].self_days++; m[k].self_min += Number(r.total_min) || 0 } else { m[k].excel_days++; m[k].excel_min += Number(r.total_min) || 0 } })
+    return Object.values(m).sort((a, b) => b.self_min - a.self_min)
   })()
 
   return (
@@ -148,11 +150,15 @@ export default function Attendance() {
 
       {rows.length > 0 && (
         <div className="card" style={{ marginTop: 12 }}>
-          <div className="dash-head"><h3 style={{ margin: 0 }}>{month ? `${month}월` : `${year}년`} 근무시간 합계</h3><strong>총 {fmtMin(monthTotal)}</strong></div>
+          <div className="dash-head">
+            <h3 style={{ margin: 0 }}>{month ? `${month}월` : `${year}년`} 근무시간 합계</h3>
+            <span><strong>출퇴근 {fmtMin(selfTotal)}</strong> <span className="muted">/ 캡스 {fmtMin(excelTotal)}</span></span>
+          </div>
+          <p className="muted" style={{ marginTop: 0 }}>· <strong>출퇴근</strong> = 직원이 실제로 누른 실근무시간, <strong>캡스</strong> = 엑셀 업로드(비교용) 데이터입니다.</p>
           {!empId && (
             <table className="data">
-              <thead><tr><th>이름</th><th>부서</th><th style={{ textAlign: 'right' }}>근무일수</th><th style={{ textAlign: 'right' }}>총 근무시간</th></tr></thead>
-              <tbody>{summaryRows.map((s) => (<tr key={s.name}><td>{s.name}</td><td>{s.dept || '-'}</td><td style={{ textAlign: 'right' }}>{s.days}</td><td style={{ textAlign: 'right' }}>{fmtMin(s.total)}</td></tr>))}</tbody>
+              <thead><tr><th>이름</th><th>부서</th><th style={{ textAlign: 'right' }}>출퇴근 일수</th><th style={{ textAlign: 'right' }}>출퇴근 시간</th><th style={{ textAlign: 'right' }}>캡스 일수</th><th style={{ textAlign: 'right' }}>캡스 시간</th></tr></thead>
+              <tbody>{summaryRows.map((s) => (<tr key={s.name}><td>{s.name}</td><td>{s.dept || '-'}</td><td style={{ textAlign: 'right' }}>{s.self_days || '-'}</td><td style={{ textAlign: 'right' }}>{s.self_min ? fmtMin(s.self_min) : '-'}</td><td style={{ textAlign: 'right' }} className="muted">{s.excel_days || '-'}</td><td style={{ textAlign: 'right' }} className="muted">{s.excel_min ? fmtMin(s.excel_min) : '-'}</td></tr>))}</tbody>
             </table>
           )}
         </div>
@@ -166,7 +172,7 @@ export default function Attendance() {
             <thead>
               <tr>
                 {showName && <th>이름</th>}
-                <th>날짜</th><th>구분</th><th>출근</th><th>퇴근</th>
+                <th>날짜</th><th>소스</th><th>구분</th><th>출근</th><th>퇴근</th>
                 <th style={{ textAlign: 'right' }}>기본</th>
                 <th style={{ textAlign: 'right' }}>연장</th>
                 <th style={{ textAlign: 'right' }}>총합</th>
@@ -177,6 +183,7 @@ export default function Attendance() {
                 <tr key={r.id}>
                   {showName && <td>{r.employee_name}</td>}
                   <td>{r.work_date}</td>
+                  <td>{srcLabel(r.source)}</td>
                   <td>{r.day_name || '-'}</td>
                   <td>{r.clock_in || '-'}</td>
                   <td>{r.clock_out || '-'}</td>
