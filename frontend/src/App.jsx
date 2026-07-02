@@ -25,6 +25,7 @@ import Approvals from './components/Approvals.jsx'
 import Attendance from './components/Attendance.jsx'
 import Notice from './components/Notice.jsx'
 import Clock from './components/Clock.jsx'
+import ActivityLog from './components/ActivityLog.jsx'
 
 // 탭키 -> 컴포넌트
 const COMPONENTS = {
@@ -37,14 +38,15 @@ const COMPONENTS = {
   attendance: Attendance,      // 관리자: 근태 현황(엑셀 업로드)
   notice: Notice,              // 전체: 공지사항(조회), 관리자: 작성·삭제
   clock: Clock,                // 직원: 출퇴근 기록(본인)
+  log: ActivityLog,            // Master: 활동 로그(출퇴근·휴가 기록)
 }
 // 라벨 기본값(메뉴 설정이 비었을 때 대비)
-const DEF_LABEL = { myleave: '내 연차', leave_request: '휴가 입력(결재)', approvals: '결재함', attendance: '근태 현황', dashboard: '대시보드', calendar: '캘린더', employees: '사원 관리', profile: '인사카드', certificate: '증명서', records: '휴가 입력', adjust: '조정·수당', status: '연차 현황', settlement: '정산서', settings: '설정', permissions: '권한', org: '조직도', alerts: '알림센터', training: '교육·자격', notice: '공지사항', clock: '출퇴근' }
+const DEF_LABEL = { myleave: '내 연차', leave_request: '휴가 입력(결재)', approvals: '결재함', attendance: '근태 현황', dashboard: '대시보드', calendar: '캘린더', employees: '사원 관리', profile: '인사카드', certificate: '증명서', records: '휴가 입력', adjust: '조정·수당', status: '연차 현황', settlement: '정산서', settings: '설정', permissions: '권한', org: '조직도', alerts: '알림센터', training: '교육·자격', notice: '공지사항', clock: '출퇴근', log: '활동 로그' }
 // 메뉴 아이콘 (MES와 동일한 통일감)
-const ICONS = { myleave: '🌴', leave_request: '✍️', approvals: '✅', attendance: '⏰', dashboard: '📊', calendar: '📅', alerts: '🔔', employees: '👥', profile: '📇', certificate: '📄', org: '🏢', training: '🎓', records: '📝', adjust: '⚖️', status: '📈', settlement: '🧾', settings: '⚙️', permissions: '🔐', notice: '📢', clock: '🕘' }
+const ICONS = { myleave: '🌴', leave_request: '✍️', approvals: '✅', attendance: '⏰', dashboard: '📊', calendar: '📅', alerts: '🔔', employees: '👥', profile: '📇', certificate: '📄', org: '🏢', training: '🎓', records: '📝', adjust: '⚖️', status: '📈', settlement: '🧾', settings: '⚙️', permissions: '🔐', notice: '📢', clock: '🕘', log: '📋' }
 const SITE_NAME = '지플랜 HR'
 // DB 메뉴가 없을 때 폴백 구조 (개인 그룹은 직원 본인용)
-const FALLBACK = [['개인', ['clock', 'myleave', 'leave_request']], ['현황', ['notice', 'dashboard', 'calendar']], ['근태', ['attendance']], ['인사', ['employees', 'profile', 'certificate']], ['연차', ['records', 'adjust', 'status', 'settlement', 'approvals']], ['설정', ['settings', 'permissions']]]
+const FALLBACK = [['개인', ['clock', 'myleave', 'leave_request']], ['현황', ['notice', 'dashboard', 'calendar']], ['근태', ['attendance']], ['인사', ['employees', 'profile', 'certificate']], ['연차', ['records', 'adjust', 'status', 'settlement', 'approvals']], ['설정', ['settings', 'permissions', 'log']]]
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -78,6 +80,7 @@ export default function App() {
   // 기본값은 '내 연차'(myleave)만 켜져 있다. (DB role_permissions: employee tab:myleave=true)
   const canSee = (k) => {
     if (k === 'permissions') return isMaster()           // 권한 화면은 Master만
+    if (k === 'log') return isMaster()                   // 활동 로그는 Master만
     // '내 연차'는 권한(직원 칸 체크) + 본인 사원기록 연결이 둘 다 있어야 표시.
     // 이렇게 해야 (1)직원 체크가 실제로 동작하고 (2)사원기록 없는 Master/관리자에게 빈 화면이 안 뜬다.
     if (k === 'myleave') return tabVisible('myleave') && !!me.employee_id

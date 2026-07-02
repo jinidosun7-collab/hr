@@ -183,6 +183,9 @@ export function getAnnouncements() { return request('/announcements') }
 export function createAnnouncement(payload) { return request('/announcements', { method: 'POST', body: JSON.stringify(payload) }) }
 export function deleteAnnouncement(id) { return request(`/announcements/${id}/delete`, { method: 'POST' }) }
 
+// 활동 로그 (master 전용) — 출퇴근 기록·휴가 신청/사용 로그
+export function getActivityLog() { return request('/activity-log') }
+
 // 권한 매트릭스 (master 전용)
 export function getPermissions() { return request('/permissions') }
 export function updatePermission(role, perm_key, allowed) { return request('/permissions/update', { method: 'POST', body: JSON.stringify({ role, perm_key, allowed }) }) }
