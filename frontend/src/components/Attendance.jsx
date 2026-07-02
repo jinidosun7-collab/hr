@@ -1,20 +1,13 @@
 // Attendance.jsx — '근태 현황' (관리자·매니저용).
 // 1) 매달 받는 근태 집계 엑셀(.xls/.xlsx)을 업로드하면 일별 근태가 저장된다.
 // 2) 연/월·직원으로 골라 출근·퇴근·근무시간을 본다.
-// 엑셀 컬럼: 사용자ID, 이름, 근무일자, 근무일명칭, 출근, 퇴근, 기본, 연장, 총합, 인정
+// 엑셀 컬럼(캡스): 이름, 근무일자, 근무일명칭, 출근, 퇴근 (그 외 컬럼은 무시). 근무시간은 출근·퇴근으로 서버가 계산.
 
 import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { getEmployees, importAttendance, getAttendance } from '../api.js'
 import { canEdit as canEditPerm } from '../perms.js'
 
-// "09:00:00" 또는 "09:00" → 분(minute)으로. 빈 값/00:00 → 0
-function hmsToMin(v) {
-  if (!v) return 0
-  const parts = String(v).split(':').map((x) => Number(x) || 0)
-  const [h = 0, m = 0] = parts
-  return h * 60 + m
-}
 // 분 → "H:MM" 표시 (없으면 '-')
 function fmtMin(n) {
   if (n === null || n === undefined) return '-'
@@ -69,18 +62,15 @@ export default function Attendance() {
       // raw:false → 시간/날짜를 보이는 문자열 그대로 읽는다
       const json = XLSX.utils.sheet_to_json(sheet, { raw: false, defval: '' })
       // 엑셀 한 줄 → 서버로 보낼 형태로 변환
+      // 유효 컬럼: 이름 / 근무일자 / 근무일명칭 / 출근 / 퇴근 (나머지는 무시)
+      // 근무시간은 서버가 출근·퇴근으로 계산한다.
       const parsed = json
         .map((r) => ({
-          user_ext_id: r['사용자ID'] != null ? String(r['사용자ID']).trim() : '',
           name: (r['이름'] || '').toString().trim(),
           work_date: normDate(r['근무일자']),
           day_name: (r['근무일명칭'] || '').toString().trim(),
           clock_in: (r['출근'] || '').toString().trim() || null,
           clock_out: (r['퇴근'] || '').toString().trim() || null,
-          basic_min: hmsToMin(r['기본']),
-          overtime_min: hmsToMin(r['연장']),
-          total_min: hmsToMin(r['총합']),
-          recognized_min: hmsToMin(r['인정']),
         }))
         .filter((r) => r.work_date) // 근무일자 없는 줄은 제외
       if (parsed.length === 0) {
@@ -125,7 +115,7 @@ export default function Attendance() {
           </label>
           {busy && <span className="muted"> 처리 중...</span>}
           <p className="muted" style={{ marginTop: 6 }}>
-            ※ 사용자ID 또는 이름으로 직원과 자동 매칭됩니다. 매칭이 안 되면 사원 관리에서 ‘근태ID(사용자ID)’를 등록해주세요.
+            ※ 캡스(비교용) 데이터입니다. 유효 컬럼: <strong>이름 · 근무일자 · 근무일명칭 · 출근 · 퇴근</strong> (나머지는 무시). 근무시간은 <strong>출근·퇴근으로 자동 계산</strong>되며, <strong>이름</strong>으로 직원과 매칭됩니다.
           </p>
         </div>
       )}
