@@ -5,7 +5,7 @@
 // Master 는 항상 전체 권한이라 매트릭스에 표시하지 않는다.
 
 import { useState, useEffect } from 'react'
-import { getPermissions, updatePermission, getAdmins, upsertAdmin, deleteAdmin } from '../api.js'
+import { getPermissions, updatePermission, getAdmins, upsertAdmin, deleteAdmin, getResetRequests, resolveResetRequest, adminSetPassword } from '../api.js'
 import MenuConfig from './MenuConfig.jsx'
 import EmployeeAccounts from './EmployeeAccounts.jsx'
 
@@ -28,6 +28,7 @@ const EDITABLE = new Set(['notice', 'approvals', 'attendance', 'employees', 'pro
 export default function Permissions() {
   const [matrix, setMatrix] = useState({})   // { 'role|perm_key': true }
   const [admins, setAdmins] = useState([])
+  const [resetReqs, setResetReqs] = useState([])
   const [error, setError] = useState('')
   const [form, setForm] = useState({ email: '', role: 'admin' })
 
@@ -41,7 +42,19 @@ export default function Permissions() {
       rows.forEach((r) => { m[`${r.role}|${r.perm_key}`] = !!r.allowed })
       setMatrix(m)
       setAdmins(await getAdmins())
+      try { setResetReqs(await getResetRequests()) } catch (e) { /* 권한 없으면 무시 */ }
     } catch (e) { setError('불러오기 실패: ' + e.message) }
+  }
+  async function resetPw(r) {
+    const pw = window.prompt(`${r.email} 계정의 새 비밀번호를 입력하세요 (6자 이상)`, '')
+    if (pw === null) return
+    if ((pw || '').length < 6) { setError('비밀번호는 6자 이상이어야 합니다.'); return }
+    try { await adminSetPassword(r.email, pw); window.alert(`${r.email} 비밀번호를 재설정했습니다. 해당 직원에게 알려주세요.`); await load() }
+    catch (e) { setError('재설정 실패: ' + e.message) }
+  }
+  async function dismissReq(r) {
+    if (!window.confirm('이 요청을 처리완료로 표시할까요?')) return
+    try { await resolveResetRequest(r.id); await load() } catch (e) { setError('처리 실패: ' + e.message) }
   }
 
   // 단일 권한 저장 (화면 먼저 반영 후 서버 저장)
@@ -127,6 +140,28 @@ export default function Permissions() {
           ))}
         </tbody>
       </table>
+
+      <hr style={{ margin: '28px 0', border: 'none', borderTop: '1px solid #e3e6ea' }} />
+      <h2>비밀번호 재설정 요청 {resetReqs.length > 0 && <span style={{ background: '#fee2e2', color: '#c0392b', padding: '2px 8px', borderRadius: 10, fontSize: 12 }}>{resetReqs.length}건</span>}</h2>
+      <p className="muted">직원이 로그인 화면의 '비밀번호 찾기'로 요청하면 여기에 표시됩니다. [비밀번호 재설정]으로 새 비밀번호를 정해 직원에게 알려주세요.</p>
+      {resetReqs.length === 0 ? <p className="muted">대기 중인 요청이 없습니다.</p> : (
+        <table className="card">
+          <thead><tr><th>이메일</th><th>직원</th><th>요청시각</th><th>처리</th></tr></thead>
+          <tbody>
+            {resetReqs.map((r) => (
+              <tr key={r.id}>
+                <td>{r.email}</td>
+                <td>{r.employee_name || '-'}</td>
+                <td>{r.requested_at ? String(r.requested_at).slice(0, 16).replace('T', ' ') : ''}</td>
+                <td className="row-actions">
+                  <button className="btn-sm" onClick={() => resetPw(r)}>비밀번호 재설정</button>
+                  <button className="btn-sm btn-ghost" onClick={() => dismissReq(r)}>처리완료</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       <hr style={{ margin: '28px 0', border: 'none', borderTop: '1px solid #e3e6ea' }} />
       <EmployeeAccounts />

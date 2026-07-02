@@ -104,6 +104,12 @@ export function resetMyAttendanceToday() { return request('/me/attendance/reset'
 // 관리자: 근태 월별 총합(직원별)
 export function getAttendanceSummary(year, month) { return request(`/attendance/summary?year=${year}&month=${month}`) }
 
+// 비밀번호 찾기(관리자 처리 방식)
+export function requestPasswordReset(email) { return request('/auth/reset-request', { method: 'POST', body: JSON.stringify({ email }) }) }
+export function getResetRequests() { return request('/auth/reset-requests') }
+export function resolveResetRequest(id) { return request(`/auth/reset-requests/${id}/resolve`, { method: 'POST' }) }
+export function adminSetPassword(email, password) { return request('/admin/set-password', { method: 'POST', body: JSON.stringify({ email, password }) }) }
+
 // 휴가 사용내역 추가 (관리자)
 export function createLeaveRecord(record) {
   return request('/leave-records', { method: 'POST', body: JSON.stringify(record) })
