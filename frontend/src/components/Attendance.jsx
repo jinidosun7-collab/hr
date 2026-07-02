@@ -163,9 +163,7 @@ export default function Attendance() {
               <tr>
                 {showName && <th>이름</th>}
                 <th>날짜</th><th>소스</th><th>구분</th><th>출근</th><th>퇴근</th>
-                <th style={{ textAlign: 'right' }}>기본</th>
-                <th style={{ textAlign: 'right' }}>연장</th>
-                <th style={{ textAlign: 'right' }}>총합</th>
+                <th style={{ textAlign: 'right' }}>총 근무시간</th>
               </tr>
             </thead>
             <tbody>
@@ -177,8 +175,6 @@ export default function Attendance() {
                   <td>{r.day_name || '-'}</td>
                   <td>{r.clock_in || '-'}</td>
                   <td>{r.clock_out || '-'}</td>
-                  <td style={{ textAlign: 'right' }}>{fmtMin(r.basic_min)}</td>
-                  <td style={{ textAlign: 'right' }}>{fmtMin(r.overtime_min)}</td>
                   <td style={{ textAlign: 'right' }}>{fmtMin(r.total_min)}</td>
                 </tr>
               ))}

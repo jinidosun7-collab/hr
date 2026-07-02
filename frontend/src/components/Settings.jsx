@@ -12,7 +12,7 @@ export default function Settings() {
   const [types, setTypes] = useState([])
   const [error, setError] = useState('')
   const [hForm, setHForm] = useState({ holiday_date: '', name: '' })
-  const [settings, setSettings] = useState({ daily_work_hours: 8, working_weekdays: [1, 2, 3, 4, 5] })
+  const [settings, setSettings] = useState({ daily_work_hours: 8, working_weekdays: [1, 2, 3, 4, 5], meal_start: '12:00', meal_minutes: 60 })
   const [ltForm, setLtForm] = useState({ label: '', deduct_days: 1, is_deductible: true })
   const editable = canEditPerm('settings') // '편집' 권한이 있어야 설정 변경 허용
 
@@ -47,6 +47,11 @@ export default function Settings() {
     saveWeekdays([...set].sort((a, b) => a - b))
   }
   function applyPreset(arr) { if (editable) saveWeekdays(arr) }
+  async function saveMeal(patch) {
+    setError('')
+    try { await updateSettings(patch); await loadSettings() }
+    catch (e) { setError('저장 실패: ' + e.message); loadSettings() }
+  }
 
   async function addHoliday(e) {
     e.preventDefault(); setError('')
@@ -102,6 +107,15 @@ export default function Settings() {
           ))}
         </div>
         <p className="muted" style={{ marginTop: 8 }}>· 선택한 요일만 종일 휴가의 사용일수로 계산됩니다(공휴일은 별도 제외). · 현재 1일 = {settings.daily_work_hours}시간 기준.</p>
+        <div style={{ marginTop: 10, borderTop: '1px solid #eef0f2', paddingTop: 10 }}>
+          <label>식사(휴게)시간 시작
+            <input type="time" defaultValue={settings.meal_start} key={'ms-' + settings.meal_start} disabled={!editable} onBlur={(e) => saveMeal({ meal_start: e.target.value })} />
+          </label>
+          <label style={{ marginLeft: 14 }}>차감
+            <input type="number" min="0" max="240" step="10" defaultValue={settings.meal_minutes} key={'mm-' + settings.meal_minutes} style={{ width: 80 }} disabled={!editable} onBlur={(e) => saveMeal({ meal_minutes: Number(e.target.value) })} /> 분
+          </label>
+        </div>
+        <p className="muted" style={{ marginTop: 6 }}>· 근무시간 = (퇴근 − 출근) − 식사시간. <strong>출근이 식사 시작시각보다 늦으면 식사시간을 차감하지 않습니다.</strong> (예: 12:00 시작·60분, 오후 2시 출근이면 미차감) · 0분으로 두면 차감 안 함.</p>
       </div>
 
       <h2>휴가구분 설정</h2>
