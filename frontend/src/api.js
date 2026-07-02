@@ -101,6 +101,8 @@ export function getMyAttendanceToday() { return request('/me/attendance/today') 
 export function clockIn() { return request('/me/attendance/clock-in', { method: 'POST' }) }
 export function clockOut() { return request('/me/attendance/clock-out', { method: 'POST' }) }
 export function resetMyAttendanceToday() { return request('/me/attendance/reset', { method: 'POST' }) }
+// 직원: 월별 근무 기록부 — 일자별 출근/퇴근 직접 저장 (빈 값이면 삭제)
+export function saveMyAttendance(work_date, clock_in, clock_out) { return request('/me/attendance/save', { method: 'POST', body: JSON.stringify({ work_date, clock_in, clock_out }) }) }
 // 관리자: 근태 월별 총합(직원별)
 export function getAttendanceSummary(year, month) { return request(`/attendance/summary?year=${year}&month=${month}`) }
 

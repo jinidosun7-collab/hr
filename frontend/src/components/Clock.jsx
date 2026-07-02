@@ -1,9 +1,11 @@
-// Clock.jsx — '출퇴근' (직원 본인).
-// 출근/퇴근 버튼으로 오늘 근무시간을 기록하고, 이번 달 본인 근무시간 총합·내역을 본다.
+// Clock.jsx — '출퇴근' (직원 본인). 월별 근무 기록부.
+// 직원이 해당 월의 날짜별로 출근/퇴근 시간을 직접 입력·저장한다. (출퇴근 버튼 방식 폐지)
+// 근무시간은 서버가 (퇴근-출근)-식사시간으로 계산한다.
 
 import { useState, useEffect } from 'react'
-import { getMyAttendanceToday, clockIn, clockOut, resetMyAttendanceToday, getMyAttendance } from '../api.js'
+import { getMyAttendance, saveMyAttendance } from '../api.js'
 
+const DOW = ['일', '월', '화', '수', '목', '금', '토']
 function fmtMin(n) {
   if (n === null || n === undefined) return '-'
   const m = Number(n) || 0
@@ -12,89 +14,84 @@ function fmtMin(n) {
 
 export default function Clock({ myName }) {
   const now = new Date()
-  const [year] = useState(now.getFullYear())
-  const [month] = useState(now.getMonth() + 1)
-  const [today, setToday] = useState({ work_date: '', record: null })
-  const [rows, setRows] = useState([])
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [edits, setEdits] = useState({})   // { 'YYYY-MM-DD': { clock_in, clock_out, total_min } }
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [savingDate, setSavingDate] = useState('')
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() /* eslint-disable-line */ }, [year, month])
   async function load() {
     setError('')
     try {
-      setToday(await getMyAttendanceToday())
-      setRows(await getMyAttendance(year, month))
+      const rows = await getMyAttendance(year, month)
+      const e = {}
+      rows.forEach((r) => { e[r.work_date] = { clock_in: r.clock_in || '', clock_out: r.clock_out || '', total_min: r.total_min } })
+      setEdits(e)
     } catch (e) { setError('조회 실패: ' + e.message) }
   }
 
-  async function doClockIn() {
-    if (!window.confirm('지금 시각으로 출근을 기록할까요?')) return
-    setBusy(true); setError(''); setMsg('')
-    try { const r = await clockIn(); setMsg(`출근 기록 완료 (${r.clock_in})`); await load() }
-    catch (e) { setError(e.message) } finally { setBusy(false) }
-  }
-  async function doClockOut() {
-    if (!window.confirm('지금 시각으로 퇴근을 기록할까요?')) return
-    setBusy(true); setError(''); setMsg('')
-    try { const r = await clockOut(); setMsg(`퇴근 기록 완료 (${r.clock_out}, 근무 ${fmtMin(r.total_min)})`); await load() }
-    catch (e) { setError(e.message) } finally { setBusy(false) }
-  }
-  async function doReset() {
-    if (!window.confirm('오늘 출퇴근 기록을 취소하고 다시 입력하시겠어요?\n(실수로 누른 경우 사용하세요.)')) return
-    setBusy(true); setError(''); setMsg('')
-    try { await resetMyAttendanceToday(); setMsg('오늘 기록을 취소했습니다. 다시 출근을 눌러주세요.'); await load() }
-    catch (e) { setError(e.message) } finally { setBusy(false) }
+  const pad = (n) => String(n).padStart(2, '0')
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const days = []
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = `${year}-${pad(month)}-${pad(d)}`
+    const dow = new Date(year, month - 1, d).getDay()
+    days.push({ date, d, dow })
   }
 
-  const rec = today.record
-  const monthTotal = rows.reduce((s, r) => s + (Number(r.total_min) || 0), 0)
+  function setField(date, key, val) {
+    setEdits((p) => ({ ...p, [date]: { ...(p[date] || {}), [key]: val } }))
+  }
+  async function saveRow(date) {
+    const row = edits[date] || {}
+    setSavingDate(date); setError(''); setMsg('')
+    try {
+      const res = await saveMyAttendance(date, row.clock_in || '', row.clock_out || '')
+      setMsg(`${date} 저장됨`)
+      setEdits((p) => ({ ...p, [date]: { clock_in: res?.clock_in || '', clock_out: res?.clock_out || '', total_min: res?.total_min ?? null } }))
+    } catch (e) { setError(`${date} 저장 실패: ` + e.message) }
+    finally { setSavingDate('') }
+  }
+  function prevMonth() { if (month === 1) { setYear(year - 1); setMonth(12) } else setMonth(month - 1) }
+  function nextMonth() { if (month === 12) { setYear(year + 1); setMonth(1) } else setMonth(month + 1) }
+
+  const monthTotal = Object.values(edits).reduce((s, r) => s + (Number(r.total_min) || 0), 0)
 
   return (
     <section>
-      <h2>출퇴근</h2>
-      <p className="muted">{myName ? `${myName}님, ` : ''}오늘({today.work_date}) 출근/퇴근을 기록하세요. 시간은 한국 시간 기준입니다.</p>
+      <h2>출퇴근 기록부</h2>
+      <p className="muted">{myName ? `${myName}님, ` : ''}해당 월의 날짜별로 <strong>출근·퇴근 시간을 직접 입력</strong>하고 저장하세요. 근무시간은 자동 계산됩니다.</p>
       {error && <p className="error">{error}</p>}
       {msg && <p className="muted" style={{ color: '#1aa260' }}>{msg}</p>}
 
-      <div className="card" style={{ textAlign: 'center', padding: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 16 }}>
-          <div><div className="muted">출근</div><div style={{ fontSize: 24, fontWeight: 700 }}>{rec?.clock_in || '--:--'}</div></div>
-          <div><div className="muted">퇴근</div><div style={{ fontSize: 24, fontWeight: 700 }}>{rec?.clock_out || '--:--'}</div></div>
-          <div><div className="muted">오늘 근무</div><div style={{ fontSize: 24, fontWeight: 700 }}>{rec?.total_min != null ? fmtMin(rec.total_min) : '-'}</div></div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
-          <button onClick={doClockIn} disabled={busy || !!rec?.clock_in} style={{ fontSize: 18, padding: '12px 32px' }}>출근</button>
-          <button onClick={doClockOut} disabled={busy || !rec?.clock_in || !!rec?.clock_out} className="btn-danger" style={{ fontSize: 18, padding: '12px 32px' }}>퇴근</button>
-        </div>
-        {rec?.clock_in && !rec?.clock_out && <p className="muted" style={{ marginTop: 10 }}>출근 완료 — 퇴근 시 '퇴근'을 눌러주세요.</p>}
-        {rec?.clock_out && <p className="muted" style={{ marginTop: 10 }}>오늘 근무 기록이 완료되었습니다.</p>}
-        {rec?.clock_in && (
-          <div style={{ marginTop: 12 }}>
-            <button className="btn-sm btn-ghost" onClick={doReset} disabled={busy}>오늘 기록 취소(재설정)</button>
-            <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>실수로 눌렀다면 취소 후 다시 입력하세요.</span>
-          </div>
-        )}
+      <div className="card search-bar" style={{ alignItems: 'center' }}>
+        <button type="button" className="btn-ghost" onClick={prevMonth}>◀ 이전</button>
+        <strong>{year}년 {month}월</strong>
+        <button type="button" className="btn-ghost" onClick={nextMonth}>다음 ▶</button>
+        <span style={{ marginLeft: 'auto' }}>월 총 근무: <strong>{fmtMin(monthTotal)}</strong></span>
       </div>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="dash-head"><h3 style={{ margin: 0 }}>{month}월 내 근무</h3><strong>총 {fmtMin(monthTotal)}</strong></div>
-        {rows.length === 0 ? <p className="muted">이번 달 기록이 없습니다.</p> : (
-          <table className="data">
-            <thead><tr><th>날짜</th><th>요일</th><th>출근</th><th>퇴근</th><th style={{ textAlign: 'right' }}>근무시간</th></tr></thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.work_date}</td><td>{r.day_name || '-'}</td>
-                  <td>{r.clock_in || '-'}</td><td>{r.clock_out || '-'}</td>
-                  <td style={{ textAlign: 'right' }}>{r.total_min != null ? fmtMin(r.total_min) : '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <table className="card data" style={{ marginTop: 12 }}>
+        <thead><tr><th>날짜</th><th>요일</th><th>출근</th><th>퇴근</th><th style={{ textAlign: 'right' }}>근무시간</th><th>저장</th></tr></thead>
+        <tbody>
+          {days.map(({ date, d, dow }) => {
+            const row = edits[date] || {}
+            return (
+              <tr key={date} className={dow === 0 ? 'sun' : dow === 6 ? 'sat' : ''}>
+                <td>{month}/{d}</td>
+                <td className={dow === 0 ? 'sun' : dow === 6 ? 'sat' : ''}>{DOW[dow]}</td>
+                <td><input type="time" value={row.clock_in || ''} onChange={(e) => setField(date, 'clock_in', e.target.value)} /></td>
+                <td><input type="time" value={row.clock_out || ''} onChange={(e) => setField(date, 'clock_out', e.target.value)} /></td>
+                <td style={{ textAlign: 'right' }}>{row.total_min != null ? fmtMin(row.total_min) : '-'}</td>
+                <td><button className="btn-sm" disabled={savingDate === date} onClick={() => saveRow(date)}>저장</button></td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <p className="muted">※ 출근/퇴근을 비우고 저장하면 그 날 기록이 삭제됩니다. 근무시간 = (퇴근 − 출근) − 식사시간(설정).</p>
     </section>
   )
 }
