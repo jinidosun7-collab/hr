@@ -96,6 +96,12 @@ export function getAttendance(year, month, employeeId) {
 export function getMyAttendance(year, month) {
   return request(`/me/attendance?year=${year}&month=${month}`)
 }
+// 직원: 출퇴근 (본인)
+export function getMyAttendanceToday() { return request('/me/attendance/today') }
+export function clockIn() { return request('/me/attendance/clock-in', { method: 'POST' }) }
+export function clockOut() { return request('/me/attendance/clock-out', { method: 'POST' }) }
+// 관리자: 근태 월별 총합(직원별)
+export function getAttendanceSummary(year, month) { return request(`/attendance/summary?year=${year}&month=${month}`) }
 
 // 휴가 사용내역 추가 (관리자)
 export function createLeaveRecord(record) {

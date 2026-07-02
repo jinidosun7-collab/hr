@@ -3,11 +3,15 @@
 // 요약 카드(사원 수·평균 소진율 등) + 전 직원 표(발생·사용·잔여·소진율 막대) + 정렬.
 
 import { useState, useEffect } from 'react'
-import { getDashboard } from '../api.js'
+import { getDashboard, getAttendanceSummary } from '../api.js'
+
+const fmtMin = (n) => { const m = Number(n) || 0; return `${Math.floor(m / 60)}시간 ${m % 60}분` }
 
 export default function Dashboard() {
   const [year, setYear] = useState(new Date().getFullYear())
   const [rows, setRows] = useState([])
+  const [att, setAtt] = useState([])
+  const attMonth = new Date().getMonth() + 1
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   // 정렬 상태: 어떤 열(key)을 오름/내림(dir) 정렬할지
@@ -24,6 +28,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
+    try { setAtt(await getAttendanceSummary(year, attMonth)) } catch (e) { /* 근태 요약은 있으면 표시 */ }
   }
 
   const fmt = (n) => (n == null ? '-' : Number(n).toFixed(2))
@@ -105,6 +110,28 @@ export default function Dashboard() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {att.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <div className="dash-head">
+            <h2>{attMonth}월 근무시간</h2>
+            <strong>총 {fmtMin(att.reduce((s, a) => s + (Number(a.total_min) || 0), 0))}</strong>
+          </div>
+          <table className="card dash-table">
+            <thead><tr><th>성명</th><th>부서</th><th style={{ textAlign: 'right' }}>근무일수</th><th style={{ textAlign: 'right' }}>총 근무시간</th><th style={{ textAlign: 'right' }}>연장</th></tr></thead>
+            <tbody>
+              {att.map((a) => (
+                <tr key={a.employee_id ?? a.name}>
+                  <td>{a.name}</td><td>{a.department || '-'}</td>
+                  <td style={{ textAlign: 'right' }}>{a.days}</td>
+                  <td style={{ textAlign: 'right' }}>{fmtMin(a.total_min)}</td>
+                  <td style={{ textAlign: 'right' }}>{fmtMin(a.overtime_min)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   )

@@ -12,6 +12,7 @@ import EmployeeAccounts from './EmployeeAccounts.jsx'
 // 매트릭스에 보여줄 권한 키 목록
 const TAB_KEYS = [
   ['tab:notice', '공지사항(전체)'],
+  ['tab:clock', '출퇴근(직원 본인)'],
   ['tab:myleave', '내 연차(직원 본인)'],
   ['tab:leave_request', '휴가 입력(결재·직원 신청)'],
   ['tab:approvals', '결재함(승인·관리자)'],

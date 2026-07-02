@@ -99,6 +99,13 @@ export default function Attendance() {
   }
 
   const showName = !empId // 전체 보기일 때만 이름 열 표시
+  // 근무시간 합계 (로드된 기간 기준)
+  const monthTotal = rows.reduce((s, r) => s + (Number(r.total_min) || 0), 0)
+  const summaryRows = (() => {
+    const m = {}
+    rows.forEach((r) => { const k = r.employee_name || '?'; if (!m[k]) m[k] = { name: k, dept: r.department || '', days: 0, total: 0 }; m[k].days++; m[k].total += Number(r.total_min) || 0 })
+    return Object.values(m).sort((a, b) => b.total - a.total)
+  })()
 
   return (
     <section>
@@ -138,6 +145,18 @@ export default function Attendance() {
         </label>
         <button onClick={load}>조회</button>
       </div>
+
+      {rows.length > 0 && (
+        <div className="card" style={{ marginTop: 12 }}>
+          <div className="dash-head"><h3 style={{ margin: 0 }}>{month ? `${month}월` : `${year}년`} 근무시간 합계</h3><strong>총 {fmtMin(monthTotal)}</strong></div>
+          {!empId && (
+            <table className="data">
+              <thead><tr><th>이름</th><th>부서</th><th style={{ textAlign: 'right' }}>근무일수</th><th style={{ textAlign: 'right' }}>총 근무시간</th></tr></thead>
+              <tbody>{summaryRows.map((s) => (<tr key={s.name}><td>{s.name}</td><td>{s.dept || '-'}</td><td style={{ textAlign: 'right' }}>{s.days}</td><td style={{ textAlign: 'right' }}>{fmtMin(s.total)}</td></tr>))}</tbody>
+            </table>
+          )}
+        </div>
+      )}
 
       <div className="card" style={{ marginTop: 12 }}>
         {rows.length === 0 ? (

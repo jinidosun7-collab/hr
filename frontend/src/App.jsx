@@ -24,6 +24,7 @@ import LeaveRequest from './components/LeaveRequest.jsx'
 import Approvals from './components/Approvals.jsx'
 import Attendance from './components/Attendance.jsx'
 import Notice from './components/Notice.jsx'
+import Clock from './components/Clock.jsx'
 
 // 탭키 -> 컴포넌트
 const COMPONENTS = {
@@ -35,14 +36,15 @@ const COMPONENTS = {
   approvals: Approvals,        // 관리자: 결재함(승인/반려)
   attendance: Attendance,      // 관리자: 근태 현황(엑셀 업로드)
   notice: Notice,              // 전체: 공지사항(조회), 관리자: 작성·삭제
+  clock: Clock,                // 직원: 출퇴근 기록(본인)
 }
 // 라벨 기본값(메뉴 설정이 비었을 때 대비)
-const DEF_LABEL = { myleave: '내 연차', leave_request: '휴가 입력(결재)', approvals: '결재함', attendance: '근태 현황', dashboard: '대시보드', calendar: '캘린더', employees: '사원 관리', profile: '인사카드', certificate: '증명서', records: '휴가 입력', adjust: '조정·수당', status: '연차 현황', settlement: '정산서', settings: '설정', permissions: '권한', org: '조직도', alerts: '알림센터', training: '교육·자격', notice: '공지사항' }
+const DEF_LABEL = { myleave: '내 연차', leave_request: '휴가 입력(결재)', approvals: '결재함', attendance: '근태 현황', dashboard: '대시보드', calendar: '캘린더', employees: '사원 관리', profile: '인사카드', certificate: '증명서', records: '휴가 입력', adjust: '조정·수당', status: '연차 현황', settlement: '정산서', settings: '설정', permissions: '권한', org: '조직도', alerts: '알림센터', training: '교육·자격', notice: '공지사항', clock: '출퇴근' }
 // 메뉴 아이콘 (MES와 동일한 통일감)
-const ICONS = { myleave: '🌴', leave_request: '✍️', approvals: '✅', attendance: '⏰', dashboard: '📊', calendar: '📅', alerts: '🔔', employees: '👥', profile: '📇', certificate: '📄', org: '🏢', training: '🎓', records: '📝', adjust: '⚖️', status: '📈', settlement: '🧾', settings: '⚙️', permissions: '🔐', notice: '📢' }
+const ICONS = { myleave: '🌴', leave_request: '✍️', approvals: '✅', attendance: '⏰', dashboard: '📊', calendar: '📅', alerts: '🔔', employees: '👥', profile: '📇', certificate: '📄', org: '🏢', training: '🎓', records: '📝', adjust: '⚖️', status: '📈', settlement: '🧾', settings: '⚙️', permissions: '🔐', notice: '📢', clock: '🕘' }
 const SITE_NAME = '지플랜 HR'
 // DB 메뉴가 없을 때 폴백 구조 (개인 그룹은 직원 본인용)
-const FALLBACK = [['개인', ['myleave', 'leave_request']], ['현황', ['notice', 'dashboard', 'calendar']], ['근태', ['attendance']], ['인사', ['employees', 'profile', 'certificate']], ['연차', ['records', 'adjust', 'status', 'settlement', 'approvals']], ['설정', ['settings', 'permissions']]]
+const FALLBACK = [['개인', ['clock', 'myleave', 'leave_request']], ['현황', ['notice', 'dashboard', 'calendar']], ['근태', ['attendance']], ['인사', ['employees', 'profile', 'certificate']], ['연차', ['records', 'adjust', 'status', 'settlement', 'approvals']], ['설정', ['settings', 'permissions']]]
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -81,6 +83,7 @@ export default function App() {
     if (k === 'myleave') return tabVisible('myleave') && !!me.employee_id
     // 휴가 신청도 본인 사원기록이 있어야(=실제 직원) 의미가 있다
     if (k === 'leave_request') return tabVisible('leave_request') && !!me.employee_id
+    if (k === 'clock') return tabVisible('clock') && !!me.employee_id   // 출퇴근은 본인 사원기록 필요
     return tabVisible(k)                                  // 그 외는 매트릭스 권한대로
   }
 
